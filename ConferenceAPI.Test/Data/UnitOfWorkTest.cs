@@ -18,6 +18,7 @@ namespace ConferenceAPI.Test.Data
         { 
             _fixture = new Fixture().Customize(new AutoMoqCustomization());
             _fixture.Register<DbContextOptions>(() => new DbContextOptions<DbContext>());
+            _fixture.Register(() => Mock.Of<DbContext>());
         }
 
         [Test]
@@ -27,7 +28,7 @@ namespace ConferenceAPI.Test.Data
             mock.Setup(p => p.Set<Room>()).Returns(Mock.Of<DbSet<Room>>());
             var sut = _fixture.Create<UnitOfWork>();
 
-            Assert.DoesNotThrow(() => sut.GetRepository<Room>(), null);
+            Assert.DoesNotThrow(() => sut.GetRepository<Room>());
         }
 
         [Test]
