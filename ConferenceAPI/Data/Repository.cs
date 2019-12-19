@@ -17,44 +17,44 @@ namespace ConferenceAPI.Data
             _dbContext = dbContext;
         }
 
-        public Task AddAsync(T entity)
+        public async Task AddAsync(T entity)
         {
-            throw new NotImplementedException();
+            await _dbContext.Set<T>().AddAsync(entity);
         }
 
-        public Task AddRangeAsync(ICollection<T> entities)
+        public async Task AddRangeAsync(ICollection<T> entities)
         {
-            throw new NotImplementedException();
+            await _dbContext.Set<T>().AddRangeAsync(entities);
         }
 
         public IEnumerable<T> Find(Expression<Func<T, bool>> predicate)
         {
-            throw new NotImplementedException();
+            return _dbContext.Set<T>().Where(predicate);
         }
 
-        public Task<IEnumerable<T>> GetAllAsync()
+        public async Task<IEnumerable<T>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _dbContext.Set<T>().ToListAsync();
         }
 
         public ValueTask<T> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            return _dbContext.Set<T>().FindAsync(id);
         }
 
         public void Remove(T entity)
         {
-            throw new NotImplementedException();
+            _dbContext.Set<T>().Remove(entity);
         }
 
         public void RemoveRange(IEnumerable<T> entities)
         {
-            throw new NotImplementedException();
+            _dbContext.Set<T>().RemoveRange(entities);
         }
 
         public Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
         {
-            throw new NotImplementedException();
+            return _dbContext.Set<T>().SingleOrDefaultAsync(predicate);
         }
     }
 }
