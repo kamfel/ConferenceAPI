@@ -31,5 +31,13 @@ namespace ConferenceAPI.Controllers
 
             return Ok(roomsDTO);
         }
+
+        [HttpGet("/{id:int}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
+
+            return Ok(room);
+        }
     }
 }
