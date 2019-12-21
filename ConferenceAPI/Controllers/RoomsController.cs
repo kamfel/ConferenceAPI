@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using ConferenceAPI.Core;
 using ConferenceAPI.Core.Models;
+using ConferenceAPI.DTO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -38,6 +39,17 @@ namespace ConferenceAPI.Controllers
             var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
 
             return Ok(room);
+        }
+
+        [HttpPost("~/")]
+        public async Task<IActionResult> CreateRoom(RoomDetailsDTO roomDTO)
+        {
+            var room = _mapper.Map<Room>(roomDTO);
+            await _unitOfWork.GetRepository<Room>().AddAsync(room);
+            await _unitOfWork.SaveChangesAsync();
+
+            //TODO: Figure out what to return in body
+            return Ok();
         }
     }
 }
