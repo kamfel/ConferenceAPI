@@ -57,14 +57,12 @@ namespace ConferenceAPI.Controllers
         {
             var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
 
-            try
+            var room = rooms.SingleOrDefault();
+
+            if (room != null)
             {
-                var room = rooms.Single();
                 _unitOfWork.GetRepository<Room>().Remove(room);
                 await _unitOfWork.SaveChangesAsync();
-            }
-            catch (InvalidOperationException)
-            {
             }
 
             return NoContent();
