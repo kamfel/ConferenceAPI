@@ -51,5 +51,23 @@ namespace ConferenceAPI.Controllers
             //TODO: Figure out what to return in body
             return Ok();
         }
+
+        [HttpDelete("~/{number:int}")]
+        public async Task<IActionResult> DeleteRoom(int roomNumber)
+        {
+            var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
+
+            try
+            {
+                var room = rooms.Single();
+                _unitOfWork.GetRepository<Room>().Remove(room);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            return NoContent();
+        }
     }
 }

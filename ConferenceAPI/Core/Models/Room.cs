@@ -9,6 +9,7 @@ namespace ConferenceAPI.Core.Models
     {
         public int Id { get; set; }
         public int AmountOfSeats { get; set; }
+        public int RoomNumber { get; set; }
         public string Layout { get; set; }
         public string Name { get; set; }
         public IEnumerable<Reservation> Reservations { get; set; }
