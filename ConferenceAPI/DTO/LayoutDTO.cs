@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ConferenceAPI.DTO
 {
-    public class RoomDetailsDTO
+    public class LayoutDTO
     {
     }
 }
