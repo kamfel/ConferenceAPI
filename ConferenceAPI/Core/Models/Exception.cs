@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace ConferenceAPI.Core.Models
 {
-    public partial class RoomDevice
+    public partial class Exception
     {
         public int Id { get; set; }
-        public int DeviceId { get; set; }
+        public DateTime Start { get; set; }
+        public DateTime End { get; set; }
         public int RoomNumber { get; set; }
 
-        public virtual Device Device { get; set; }
         public virtual Room RoomNumberNavigation { get; set; }
     }
 }

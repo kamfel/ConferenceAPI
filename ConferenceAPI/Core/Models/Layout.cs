@@ -3,16 +3,16 @@ using System.Collections.Generic;
 
 namespace ConferenceAPI.Core.Models
 {
-    public partial class Device
+    public partial class Layout
     {
-        public Device()
+        public Layout()
         {
-            RoomDevices = new HashSet<RoomDevice>();
+            Rooms = new HashSet<Room>();
         }
 
         public int Id { get; set; }
         public string Name { get; set; }
 
-        public virtual ICollection<RoomDevice> RoomDevices { get; set; }
+        public virtual ICollection<Room> Rooms { get; set; }
     }
 }
