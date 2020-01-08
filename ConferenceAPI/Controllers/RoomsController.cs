@@ -24,7 +24,8 @@ namespace ConferenceAPI.Controllers
             _mapper = mapper;
         }
 
-        [HttpGet("~/")]
+        [Route("")]
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var rooms = await _unitOfWork.GetRepository<Room>().GetAllAsync();
@@ -33,7 +34,8 @@ namespace ConferenceAPI.Controllers
             return Ok(roomsDTO);
         }
 
-        [HttpGet("/{id:int}")]
+        [Route("{id}")]
+        [HttpGet]
         public async Task<IActionResult> GetById(int id)
         {
             var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
@@ -41,8 +43,9 @@ namespace ConferenceAPI.Controllers
             return Ok(room);
         }
 
-        [HttpPost("~/")]
-        public async Task<IActionResult> CreateRoom(RoomDetailsDTO roomDTO)
+        [Route("")]
+        [HttpPost]
+        public async Task<IActionResult> Create(RoomDetailsDTO roomDTO)
         {
             var room = _mapper.Map<Room>(roomDTO);
             await _unitOfWork.GetRepository<Room>().AddAsync(room);
@@ -52,8 +55,9 @@ namespace ConferenceAPI.Controllers
             return Ok();
         }
 
-        [HttpDelete("~/{number:int}")]
-        public async Task<IActionResult> DeleteRoom(int roomNumber)
+        [Route("{number:int}")]
+        [HttpDelete]
+        public async Task<IActionResult> Remove(int roomNumber)
         {
             var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
 
@@ -66,6 +70,28 @@ namespace ConferenceAPI.Controllers
             }
 
             return NoContent();
+        }
+
+        [Route("{roomNumber:int}")]
+        [HttpPut]
+        public async Task<IActionResult> UpdateRoom(int roomNumber, [FromBody] RoomDetailsDTO roomDTO)
+        {
+            var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
+
+            var room = rooms.SingleOrDefault();
+
+            if (room != null)
+            {
+                _unitOfWork.GetRepository<Room>().Remove(room);
+            }
+
+            var newRoom = _mapper.Map<Room>(roomDTO);
+
+            await _unitOfWork.GetRepository<Room>().AddAsync(newRoom);
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return Ok(roomDTO);
         }
     }
 }
