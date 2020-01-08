@@ -1,17 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using AutoMapper;
-using System.Reflection;
+using ConferenceAPI.Core;
+using ConferenceAPI.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ConferenceAPI
 {
@@ -27,9 +22,16 @@ namespace ConferenceAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            services.AddDbContext<ConferenceDbContext>(options => options.UseMySql(Configuration.GetConnectionString("MySQL")));
+
+            services.AddScoped<DbContext>(provider => provider.GetService<ConferenceDbContext>());
+
             services.AddControllers();
 
             services.AddAutoMapper(typeof(ConferenceProfile));
+
+            services.AddScoped(typeof(IUnitOfWork), typeof(UnitOfWork));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
