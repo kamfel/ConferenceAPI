@@ -6,6 +6,7 @@ using AutoMapper;
 using ConferenceAPI.Core;
 using ConferenceAPI.Core.Models;
 using ConferenceAPI.DTO;
+using ConferenceAPI.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,17 +27,22 @@ namespace ConferenceAPI.Controllers
 
         [Route("")]
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAllAsync([FromQuery] RoomSearchParameters parameters)
         {
+            if (!parameters.IsEmpty())
+            {
+                return FindAsync(parameters);
+            }
+
             var rooms = await _unitOfWork.GetRepository<Room>().GetAllAsync();
-            var roomsDTO = _mapper.Map<Room>(rooms);
+            var roomsDTO = _mapper.Map<ICollection<RoomDTO>>(rooms);
 
             return Ok(roomsDTO);
         }
 
         [Route("{id}")]
         [HttpGet]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetByIdAsync(int id)
         {
             var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
 
@@ -45,7 +51,7 @@ namespace ConferenceAPI.Controllers
 
         [Route("")]
         [HttpPost]
-        public async Task<IActionResult> Create(RoomDetailsDTO roomDTO)
+        public async Task<IActionResult> CreateAsync(RoomDetailsDTO roomDTO)
         {
             var room = _mapper.Map<Room>(roomDTO);
             await _unitOfWork.GetRepository<Room>().AddAsync(room);
@@ -57,7 +63,7 @@ namespace ConferenceAPI.Controllers
 
         [Route("{number:int}")]
         [HttpDelete]
-        public async Task<IActionResult> Remove(int roomNumber)
+        public async Task<IActionResult> RemoveAsync(int roomNumber)
         {
             var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
 
@@ -74,7 +80,7 @@ namespace ConferenceAPI.Controllers
 
         [Route("{roomNumber:int}")]
         [HttpPut]
-        public async Task<IActionResult> UpdateRoom(int roomNumber, [FromBody] RoomDetailsDTO roomDTO)
+        public async Task<IActionResult> UpdateAsync(int roomNumber, [FromBody] RoomDetailsDTO roomDTO)
         {
             var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
 
@@ -92,6 +98,22 @@ namespace ConferenceAPI.Controllers
             await _unitOfWork.SaveChangesAsync();
 
             return Ok(roomDTO);
+        }
+
+        private IActionResult FindAsync([FromQuery] RoomSearchParameters parameters)
+        {
+            var layouts = parameters.Layouts.Split(',');
+            var devices = parameters.Devices.Split(',');
+
+            var rooms = _unitOfWork.GetRepository<Room>().Find(room => 
+                            parameters.MinSeats < room.Seats &&
+                            parameters.MaxSeats > room.Seats &&
+                            layouts.Contains(room.LayoutNavigation.Name.ToLower()) &&
+                            devices.Intersect(room.RoomDevices.Select(rd => rd.Device.Name.ToLower())).Count() != 0);
+
+            var roomsDTO = _mapper.Map<IEnumerable<RoomDTO>>(rooms);
+
+            return Ok(roomsDTO);
         }
     }
 }
