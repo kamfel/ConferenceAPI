@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using ConferenceAPI.Core;
 using ConferenceAPI.Core.Models;
+using ConferenceAPI.Core.Services;
 using ConferenceAPI.DTO;
 using ConferenceAPI.Helpers;
 using Microsoft.AspNetCore.Http;
@@ -18,11 +19,13 @@ namespace ConferenceAPI.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IAvailabilityService _availabilityService;
 
-        public RoomsController(IUnitOfWork unitOfWork, IMapper mapper)
+        public RoomsController(IUnitOfWork unitOfWork, IMapper mapper, IAvailabilityService availabilityService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _availabilityService = availabilityService;
         }
 
         [Route("")]
@@ -31,7 +34,7 @@ namespace ConferenceAPI.Controllers
         {
             if (!parameters.IsEmpty())
             {
-                return FindAsync(parameters);
+                return Find(parameters);
             }
 
             var rooms = await _unitOfWork.GetRepository<Room>().GetAllAsync();
@@ -100,7 +103,24 @@ namespace ConferenceAPI.Controllers
             return Ok(roomDTO);
         }
 
-        private IActionResult FindAsync([FromQuery] RoomSearchParameters parameters)
+        private async Task<IActionResult> GetAvailableTimeFramesAsync(int id, DateTime date)
+        {
+            var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
+
+            var timeFrames = _availabilityService.GetAvailableTimeFramesOnDate(room, date);
+
+            return Ok(timeFrames);
+        }
+        private async Task<IActionResult> GetAvailableTimeFramesAsync(int id, DateTime start, DateTime end)
+        {
+            var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
+
+            var timeFrames = _availabilityService.GetAvailableTimeFramesInRange(room, start, end);
+
+            return Ok(timeFrames);
+        }
+
+        private IActionResult Find([FromQuery] RoomSearchParameters parameters)
         {
             var layouts = parameters.Layouts.Split(',');
             var devices = parameters.Devices.Split(',');
@@ -109,11 +129,12 @@ namespace ConferenceAPI.Controllers
                             parameters.MinSeats < room.Seats &&
                             parameters.MaxSeats > room.Seats &&
                             layouts.Contains(room.LayoutNavigation.Name.ToLower()) &&
-                            devices.Intersect(room.RoomDevices.Select(rd => rd.Device.Name.ToLower())).Count() != 0);
+                            devices.Intersect(room.RoomDevices.Select(rd => rd.Device.Name.ToLower())).Any());
 
             var roomsDTO = _mapper.Map<IEnumerable<RoomDTO>>(rooms);
 
             return Ok(roomsDTO);
         }
+
     }
 }
