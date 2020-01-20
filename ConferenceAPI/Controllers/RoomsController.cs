@@ -7,7 +7,6 @@ using ConferenceAPI.Core;
 using ConferenceAPI.Core.Models;
 using ConferenceAPI.Core.Services;
 using ConferenceAPI.DTO;
-using ConferenceAPI.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
