@@ -7,6 +7,8 @@ using AutoMapper;
 using ConferenceAPI.Core;
 using ConferenceAPI.Data;
 using Microsoft.EntityFrameworkCore;
+using ConferenceAPI.Core.Services;
+using ConferenceAPI.Services;
 
 namespace ConferenceAPI
 {
@@ -32,6 +34,8 @@ namespace ConferenceAPI
             services.AddAutoMapper(typeof(ConferenceProfile));
 
             services.AddScoped(typeof(IUnitOfWork), typeof(UnitOfWork));
+
+            services.AddScoped(typeof(IAvailabilityService), typeof(AvailabilityService));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
