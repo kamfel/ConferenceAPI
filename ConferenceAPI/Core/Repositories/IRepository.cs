@@ -14,6 +14,7 @@ namespace ConferenceAPI.Core.Repositories
         Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate);
         Task AddAsync(T entity);
         Task AddRangeAsync(ICollection<T> entities);
+        Task<bool> AddIfNotExistsAsync(T entity, Expression<Func<T, bool>> predicate = null);
         void Remove(T entity);
         void RemoveRange(IEnumerable<T> entities);
     }

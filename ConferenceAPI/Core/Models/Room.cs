@@ -17,7 +17,7 @@ namespace ConferenceAPI.Core.Models
         public int Seats { get; set; }
         public int Layout { get; set; }
         public string Name { get; set; }
-        public sbyte? ExceptionInversion { get; set; }
+        public byte? ExceptionInversion { get; set; }
 
         public virtual Layout LayoutNavigation { get; set; }
         public virtual ICollection<Block> Blocks { get; set; }

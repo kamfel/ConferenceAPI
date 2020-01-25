@@ -6,5 +6,6 @@ namespace ConferenceAPI.DTO
 {
     public class LayoutDTO
     {
+        public string Name { get; set; }
     }
 }

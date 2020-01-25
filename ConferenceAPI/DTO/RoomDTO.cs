@@ -6,5 +6,7 @@ namespace ConferenceAPI.DTO
 {
     public class RoomDTO
     {
+        public int RoomNumber { get; set; }
+        public string Name { get; set; }
     }
 }

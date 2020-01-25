@@ -22,6 +22,17 @@ namespace ConferenceAPI.Data
             await _dbContext.Set<T>().AddAsync(entity);
         }
 
+        public async Task<bool> AddIfNotExistsAsync(T entity, Expression<Func<T, bool>> predicate = null)
+        {
+            var set = _dbContext.Set<T>();
+            var exists = predicate != null ? set.Any(predicate) : set.Any();
+            if (!exists)
+            {
+                await set.AddAsync(entity);
+            }
+            return !exists;
+        }
+
         public async Task AddRangeAsync(ICollection<T> entities)
         {
             await _dbContext.Set<T>().AddRangeAsync(entities);
@@ -52,9 +63,9 @@ namespace ConferenceAPI.Data
             _dbContext.Set<T>().RemoveRange(entities);
         }
 
-        public Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        public async Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
         {
-            return _dbContext.Set<T>().SingleOrDefaultAsync(predicate);
+            return await _dbContext.Set<T>().SingleOrDefaultAsync(predicate);
         }
     }
 }

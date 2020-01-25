@@ -9,6 +9,9 @@ using ConferenceAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using ConferenceAPI.Core.Services;
 using ConferenceAPI.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace ConferenceAPI
 {
@@ -24,7 +27,6 @@ namespace ConferenceAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
             services.AddDbContext<ConferenceDbContext>(options => options.UseMySql(Configuration.GetConnectionString("MySQL")));
 
             services.AddScoped<DbContext>(provider => provider.GetService<ConferenceDbContext>());
@@ -32,6 +34,33 @@ namespace ConferenceAPI
             services.AddControllers();
 
             services.AddAutoMapper(typeof(ConferenceProfile));
+
+            var secret = Encoding.UTF8.GetBytes(Configuration["Secret"]);
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.SaveToken = true;
+                options.RequireHttpsMetadata = true;
+                options.TokenValidationParameters = new TokenValidationParameters()
+                {
+                    ValidateIssuerSigningKey = true,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    IssuerSigningKey = new SymmetricSecurityKey(secret)
+                };
+            });
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("AdminOnly", policy =>
+                {
+                    policy.RequireClaim("admin", "true");
+                });
+            });
 
             services.AddScoped(typeof(IUnitOfWork), typeof(UnitOfWork));
 
@@ -50,6 +79,7 @@ namespace ConferenceAPI
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
