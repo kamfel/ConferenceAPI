@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -7,11 +9,13 @@ using ConferenceAPI.Core;
 using ConferenceAPI.Core.Models;
 using ConferenceAPI.Core.Services;
 using ConferenceAPI.DTO;
-using Microsoft.AspNetCore.Http;
+using ConferenceAPI.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ConferenceAPI.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class RoomsController : ControllerBase
@@ -44,18 +48,64 @@ namespace ConferenceAPI.Controllers
 
         [Route("{id}")]
         [HttpGet]
-        public async Task<IActionResult> GetByIdAsync(int id)
+        public async Task<IActionResult> GetByIdAsync(int id, [FromQuery] string date, [FromQuery] string start, [FromQuery] string end)
         {
             var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
 
-            return Ok(room);
+            if (room == null)
+            {
+                return NotFound();
+            }
+
+            if (date != null)
+            {
+                var d = DateTime.ParseExact(date, "ddMMyyyy", null);
+                var timeFrames = _availabilityService.GetAvailableTimeFramesOnDate(room, d);
+                return Ok(timeFrames);
+            }
+            if (start != null && end != null)
+            {
+                var s = DateTime.ParseExact(start, "ddMMyyyyhhmmss", null);
+                var e = DateTime.ParseExact(end, "ddMMyyyyhhmmss", null);
+                var timeFrames = _availabilityService.GetAvailableTimeFramesInRange(room, s, e);
+                return Ok(timeFrames);
+            }
+            if (date != null || start != null || end != null)
+            {
+                return BadRequest("Invalid query parameters");
+            }
+
+            var roomDTO = _mapper.Map<RoomDetailsDTO>(room);
+
+            return Ok(roomDTO);
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [Route("")]
         [HttpPost]
         public async Task<IActionResult> CreateAsync(RoomDetailsDTO roomDTO)
         {
             var room = _mapper.Map<Room>(roomDTO);
+
+            var layout = await _unitOfWork.GetRepository<Layout>().SingleOrDefaultAsync(l => l.Name == roomDTO.Layout) ?? new Layout() { Name = roomDTO.Layout };
+
+            var roomDevices = new List<RoomDevice>();
+
+            if (roomDTO.Devices != null && roomDTO.Devices.Any())
+            {
+                var devicesFromDB = await _unitOfWork.GetRepository<Device>().GetAllAsync();
+                foreach (var deviceName in roomDTO.Devices)
+                {
+                    var device = devicesFromDB.SingleOrDefault(d => d.Name == deviceName) ?? new Device() { Name = deviceName };
+
+                    roomDevices.Add(new RoomDevice() { Device = device, RoomNumberNavigation = room });
+                }
+            }
+
+            room.LayoutNavigation = layout;
+            room.RoomDevices = roomDevices;
+            room.ExceptionInversion = roomDTO.ExceptionInversion ? (byte)1 : (byte)0;
+
             await _unitOfWork.GetRepository<Room>().AddAsync(room);
             await _unitOfWork.SaveChangesAsync();
 
@@ -63,13 +113,12 @@ namespace ConferenceAPI.Controllers
             return Ok();
         }
 
-        [Route("{number:int}")]
+        [Authorize(Policy = "AdminOnly")]
+        [Route("{roomNumber:int}")]
         [HttpDelete]
         public async Task<IActionResult> RemoveAsync(int roomNumber)
         {
-            var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
-
-            var room = rooms.SingleOrDefault();
+            var room = await _unitOfWork.GetRepository<Room>().SingleOrDefaultAsync(r => r.RoomNumber == roomNumber);
 
             if (room != null)
             {
@@ -80,55 +129,80 @@ namespace ConferenceAPI.Controllers
             return NoContent();
         }
 
+        [Authorize(Policy = "AdminOnly")]
         [Route("{roomNumber:int}")]
         [HttpPut]
         public async Task<IActionResult> UpdateAsync(int roomNumber, [FromBody] RoomDetailsDTO roomDTO)
         {
-            var rooms = _unitOfWork.GetRepository<Room>().Find(r => r.RoomNumber == roomNumber);
-
-            var room = rooms.SingleOrDefault();
+            var room = await _unitOfWork.GetRepository<Room>().SingleOrDefaultAsync(r => r.RoomNumber == roomNumber);
 
             if (room != null)
             {
                 _unitOfWork.GetRepository<Room>().Remove(room);
             }
 
-            var newRoom = _mapper.Map<Room>(roomDTO);
+            roomDTO.RoomNumber = roomNumber;
 
-            await _unitOfWork.GetRepository<Room>().AddAsync(newRoom);
+            return await CreateAsync(roomDTO);
+        }
 
+        [Authorize(Policy = "AdminOnly")]
+        [Route("{roomId:int}/segments")]
+        [HttpPost]
+        public async Task<IActionResult> CreateSegmentAsync(int roomId, [FromBody] TimeFrameDTO timeFrame)
+        {
+            var segment = _mapper.Map<Block>(timeFrame);
+            var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(roomId);
+            room.Blocks.Add(segment);
             await _unitOfWork.SaveChangesAsync();
 
-            return Ok(roomDTO);
+            return Ok();
         }
 
-        private async Task<IActionResult> GetAvailableTimeFramesAsync(int id, DateTime date)
+        [Authorize(Policy = "AdminOnly")]
+        [Route("{roomId:int}/segments")]
+        [HttpDelete]
+        public async Task<IActionResult> RemoveSegmentsInRange(int roomId, [FromQuery] string start, [FromQuery] string end)
         {
-            var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
+            Predicate<DateTime> isEarlierThanEndTime = dt => true;
+            Predicate<DateTime> isLaterThanStartTime = dt => true;
 
-            var timeFrames = _availabilityService.GetAvailableTimeFramesOnDate(room, date);
+            if (start != null)
+            {
+                var startTime = DateTime.ParseExact(start, "ddMMyyyyhhmmss", null);
+                isLaterThanStartTime = dt => dt > startTime;
+            }
 
-            return Ok(timeFrames);
+            if (end != null)
+            {
+                var endTime = DateTime.ParseExact(end, "ddMMyyyyhhmmss", null);
+                isEarlierThanEndTime = dt => dt < endTime;
+            }
+
+            var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(roomId);
+            foreach (var segment in room.Blocks)
+            {
+                if (isEarlierThanEndTime(segment.StartTime) && isLaterThanStartTime(segment.EndTime))
+                {
+                    room.Blocks.Remove(segment);
+                }
+            }
+            await _unitOfWork.SaveChangesAsync();
+
+            return NoContent();
         }
-        private async Task<IActionResult> GetAvailableTimeFramesAsync(int id, DateTime start, DateTime end)
-        {
-            var room = await _unitOfWork.GetRepository<Room>().GetByIdAsync(id);
 
-            var timeFrames = _availabilityService.GetAvailableTimeFramesInRange(room, start, end);
-
-            return Ok(timeFrames);
-        }
-
-        private IActionResult Find([FromQuery] RoomSearchParameters parameters)
+        private IActionResult Find(RoomSearchParameters parameters)
         {
             var layouts = parameters.Layouts.Split(',');
             var devices = parameters.Devices.Split(',');
 
-            var rooms = _unitOfWork.GetRepository<Room>().Find(room => 
+            var rooms = _unitOfWork.GetRepository<Room>().Find(room =>
                             parameters.MinSeats < room.Seats &&
                             parameters.MaxSeats > room.Seats &&
-                            layouts.Contains(room.LayoutNavigation.Name.ToLower()) &&
-                            devices.Intersect(room.RoomDevices.Select(rd => rd.Device.Name.ToLower())).Any());
+                            layouts.Contains(room.LayoutNavigation.Name) &&
+                            room.RoomDevices.Select(rd => rd.Device.Name).Any(d => devices.Contains(d)))
+                            .ToList();
 
             var roomsDTO = _mapper.Map<IEnumerable<RoomDTO>>(rooms);
 
