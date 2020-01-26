@@ -51,11 +51,39 @@ namespace ConferenceAPI.Controllers
             return Ok(reservationsDTO);
         }
 
+        [HttpGet("api/users/{userId:int}/reservations")]
+        public async Task<IActionResult> GetAllForUser(int userId)
+        {
+            if (User.FindFirst("admin").Value != "true")
+            {
+                //Current user isn't admin
+                var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                var userIdToken = int.Parse(claim.Value);
+
+                if (userId != userIdToken)
+                {
+                    return BadRequest($"Cannot get other user's reservations");
+                }
+            }
+
+            var reservations = _unitOfWork.GetRepository<Reservation>().Find(r => r.UserId == userId).ToList();
+            var reservationsDTO = _mapper.Map<IEnumerable<ReservationDTO>>(reservations);
+
+            return Ok(reservationsDTO);
+        }
+
         [Route("{id:int}")]
         [HttpGet]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
             var reservation = await _unitOfWork.GetRepository<Reservation>().GetByIdAsync(id);
+
+            if (reservation == null)
+            {
+                return NotFound();
+            }
+
             var reservationDTO = _mapper.Map<ReservationDTO>(reservation);
 
             return Ok(reservationDTO);
@@ -77,6 +105,19 @@ namespace ConferenceAPI.Controllers
             if (user == null)
             {
                 return BadRequest($"The email of user, who the reservation is made for, doesn't exist.");
+            }
+
+            if (User.FindFirst("admin").Value != "true")
+            {
+                //Current user isn't admin
+                var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                var userId = int.Parse(claim.Value);
+
+                if (user.Id != userId)
+                {
+                    return BadRequest($"Cannot make a reservation for a different user");
+                }
             }
 
             var segment = await _unitOfWork.GetRepository<Block>().SingleOrDefaultAsync(b => b.RoomNumber == reservationDTO.RoomNumber &&
