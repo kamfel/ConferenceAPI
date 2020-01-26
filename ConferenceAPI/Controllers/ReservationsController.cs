@@ -52,7 +52,7 @@ namespace ConferenceAPI.Controllers
         }
 
         [HttpGet("api/users/{userId:int}/reservations")]
-        public async Task<IActionResult> GetAllForUser(int userId)
+        public IActionResult GetAllForUser(int userId)
         {
             if (User.FindFirst("admin").Value != "true")
             {
