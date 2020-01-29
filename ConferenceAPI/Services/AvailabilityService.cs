@@ -47,12 +47,12 @@ namespace ConferenceAPI.Services
             }
 
             var reservations = _unitOfWork.GetRepository<Reservation>().Find(r => r.RoomNumber == room.RoomNumber &&
-                                                                                          r.Date.Date == date);
+                                                                                          r.Date.Date == date).ToList();
             var segments = _unitOfWork.GetRepository<Block>().Find(b => b.RoomNumber == room.RoomNumber &&
-                                                                        b.StartTime.Date == date);
+                                                                        b.StartTime.Date == date).ToList();
             var exceptions = _unitOfWork.GetRepository<Core.Models.Exception>().Find(e => e.RoomNumber == room.RoomNumber &&
                                                                                           e.Start.Date <= date &&
-                                                                                          e.End.Date >= date);
+                                                                                          e.End.Date >= date).ToList();
 
             return AnalyseForAvailibleTimeFrames(reservations, segments, exceptions, room.ExceptionInversion.Value != 0);
         }
