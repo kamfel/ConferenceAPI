@@ -51,7 +51,7 @@ namespace ConferenceAPI.Controllers
             return Ok(reservationsDTO);
         }
 
-        [HttpGet("api/users/{userId:int}/reservations")]
+        [HttpGet("~/api/users/{userId:int}/reservations")]
         public IActionResult GetAllForUser(int userId)
         {
             if (User.FindFirst("admin").Value != "true")
