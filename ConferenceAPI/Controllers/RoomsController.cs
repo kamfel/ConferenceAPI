@@ -85,7 +85,7 @@ namespace ConferenceAPI.Controllers
             return Ok(roomDTO);
         }
 
-        [Route("{id:int}/segments")]
+        [Route("{roomId:int}/segments")]
         [HttpGet]
         public IActionResult GetAllTimeFramesForRoomInRange(int roomId, [FromQuery] string start, [FromQuery] string end)
         {
@@ -97,7 +97,7 @@ namespace ConferenceAPI.Controllers
             var startTime = DateTime.ParseExact(start, "ddMMyyyyhhmmss", null);
             var endTime = DateTime.ParseExact(end, "ddMMyyyyhhmmss", null);
 
-            var segments = _unitOfWork.GetRepository<Block>().Find(b => b.RoomNumber == roomId && b.StartTime >= startTime && b.EndTime <= endTime);
+            var segments = _unitOfWork.GetRepository<Block>().Find(b => b.RoomNumber == roomId && b.StartTime >= startTime && b.EndTime <= endTime).ToList();
 
             var timeFramesDTO = segments.Select(b =>
             {
