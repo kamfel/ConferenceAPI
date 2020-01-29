@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AutoMapper;
 using ConferenceAPI.Core;
@@ -12,6 +14,7 @@ using ConferenceAPI.DTO;
 using ConferenceAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
 
 namespace ConferenceAPI.Controllers
 {
@@ -80,6 +83,32 @@ namespace ConferenceAPI.Controllers
             roomDTO.Devices = room.RoomDevices.Select(rd => rd.Device.Name).ToArray();
 
             return Ok(roomDTO);
+        }
+
+        [Route("{id:int}/segments")]
+        [HttpGet]
+        public IActionResult GetAllTimeFramesForRoomInRange(int roomId, [FromQuery] string start, [FromQuery] string end)
+        {
+            if (start == null || end == null)
+            {
+                return BadRequest("Missing one of the query parameters start or/and end");
+            }
+
+            var startTime = DateTime.ParseExact(start, "ddMMyyyyhhmmss", null);
+            var endTime = DateTime.ParseExact(end, "ddMMyyyyhhmmss", null);
+
+            var segments = _unitOfWork.GetRepository<Block>().Find(b => b.RoomNumber == roomId && b.StartTime >= startTime && b.EndTime <= endTime);
+
+            var timeFramesDTO = segments.Select(b =>
+            {
+                var timeFrame = new AvailabilityTimeFrameDTO();
+                timeFrame.Start = b.StartTime;
+                timeFrame.End = b.EndTime;
+                timeFrame.IsAvailable = b.Reservations.Any() ? false : true;
+                return timeFrame;
+            });
+
+            return Ok(timeFramesDTO);
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -210,6 +239,42 @@ namespace ConferenceAPI.Controllers
             var deviceNames = devices.Select(d => d.Name);
 
             return Ok(deviceNames);
+        }
+
+        [HttpGet]
+        [Route("{roomId:int}/assets/{platform:int}")]
+        public IActionResult GetAssetBundle(int roomId, int platform)
+        {
+            var path = Directory.GetCurrentDirectory();
+            var provider = new PhysicalFileProvider(path);
+
+            IDirectoryContents files;
+
+            if (platform == 1)
+            {
+                //windows
+                files = provider.GetDirectoryContents(@"Bundles\StandaloneWindows");
+            }
+            else if (platform == 2)
+            {
+                //android
+                files = provider.GetDirectoryContents(@"Bundles\Android");
+            }
+            else
+            {
+                return BadRequest("Wrong platform. Use 1 for windows and 2 for android");
+            }
+
+            var fileInfo = files.SingleOrDefault(fi => fi.Name == $"sampleroom_{roomId}");
+
+            if (fileInfo == null)
+            {
+                return BadRequest($"File for room {roomId} and given platform doesn't exist");
+            }
+
+            var stream = new FileStream(fileInfo.PhysicalPath, FileMode.Open);
+
+            return new FileStreamResult(stream, "application/octet-stream");
         }
 
 
