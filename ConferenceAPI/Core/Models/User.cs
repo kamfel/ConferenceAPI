@@ -16,6 +16,7 @@ namespace ConferenceAPI.Core.Models
         public string LastName { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
+        public string PhoneNumber { get; set; }
 
         public virtual ICollection<Reservation> Reservations { get; set; }
         public virtual ICollection<UserPermission> UserPermissions { get; set; }

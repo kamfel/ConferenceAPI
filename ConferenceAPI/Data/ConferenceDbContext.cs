@@ -346,6 +346,10 @@ namespace ConferenceAPI.Data
                     .HasColumnName("id")
                     .HasColumnType("int(11)");
 
+                entity.Property(e => e.PhoneNumber)
+                    .HasColumnName("phone")
+                    .HasColumnType("varchar(50)");
+
                 entity.Property(e => e.Email)
                     .IsRequired()
                     .HasColumnName("email")
