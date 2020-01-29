@@ -40,8 +40,10 @@ namespace ConferenceAPI
 
             CreateMap<Room, RoomDetailsDTO>()
                 .ForMember(dto => dto.Layout, cfg => cfg.Ignore())
-                .ForMember(dto => dto.Devices, cfg => cfg.Ignore())
-                .ReverseMap();
+                .ForMember(dto => dto.Devices, cfg => cfg.Ignore());
+
+            CreateMap<RoomDetailsDTO, Room>()
+                .ForMember(r => r.Layout, cfg => cfg.Ignore());
         }
     }
 }
