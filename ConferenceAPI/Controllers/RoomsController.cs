@@ -76,6 +76,8 @@ namespace ConferenceAPI.Controllers
             }
 
             var roomDTO = _mapper.Map<RoomDetailsDTO>(room);
+            roomDTO.Layout = room.LayoutNavigation.Name;
+            roomDTO.Devices = room.RoomDevices.Select(rd => rd.Device.Name).ToArray();
 
             return Ok(roomDTO);
         }
@@ -192,10 +194,29 @@ namespace ConferenceAPI.Controllers
             return NoContent();
         }
 
+        [HttpGet("api/layouts")]
+        public async Task<IActionResult> GetAllLayoutsAsync()
+        {
+            var layouts = await _unitOfWork.GetRepository<Layout>().GetAllAsync();
+            var layoutNames = layouts.Select(l => l.Name);
+
+            return Ok(layoutNames);
+        }
+
+        [HttpGet("api/devices")]
+        public async Task<IActionResult> GetAllDevicesAsync()
+        {
+            var devices = await _unitOfWork.GetRepository<Device>().GetAllAsync();
+            var deviceNames = devices.Select(d => d.Name);
+
+            return Ok(deviceNames);
+        }
+
+
         private IActionResult Find(RoomSearchParameters parameters)
         {
-            var layouts = parameters.Layouts.Split(',');
-            var devices = parameters.Devices.Split(',');
+            var layouts = parameters.Layouts?.Split(',');
+            var devices = parameters.Devices?.Split(',');
 
             var rooms = _unitOfWork.GetRepository<Room>().Find(room =>
                             parameters.MinSeats < room.Seats &&

@@ -27,7 +27,10 @@ namespace ConferenceAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ConferenceDbContext>(options => options.UseMySql(Configuration.GetConnectionString("MySQL")));
+            services.AddDbContext<ConferenceDbContext>(options => {
+                options.UseMySql(Configuration.GetConnectionString("MySQL"));
+                options.UseLazyLoadingProxies();
+                });
 
             services.AddScoped<DbContext>(provider => provider.GetService<ConferenceDbContext>());
 

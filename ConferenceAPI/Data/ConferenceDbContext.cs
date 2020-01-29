@@ -303,7 +303,7 @@ namespace ConferenceAPI.Data
                     .HasName("room_number_idx");
 
                 entity.Property(e => e.Id)
-                    .HasColumnName("idroomsdevices")
+                    .HasColumnName("id")
                     .HasColumnType("int(11)");
 
                 entity.Property(e => e.DeviceId)
